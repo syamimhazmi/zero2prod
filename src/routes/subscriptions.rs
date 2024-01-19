@@ -1,9 +1,7 @@
 use actix_web::{web, HttpResponse};
-use actix_web::web::Form;
 use sqlx::PgPool;
 use chrono::Utc;
 use uuid::Uuid;
-use tracing::Instrument;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -26,7 +24,7 @@ pub async fn subscribes(
 ) -> HttpResponse {
     match insert_subscriber(&pool, &form).await {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(err) => HttpResponse::InternalServerError().finish()
+        Err(_) => HttpResponse::InternalServerError().finish()
     }
 }
 
