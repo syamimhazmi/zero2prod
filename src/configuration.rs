@@ -2,12 +2,12 @@ use secrecy::{ExposeSecret, Secret};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
-    pub database: DatabaseSetting,
-    pub application: ApplicationSetting,
+    pub database: DatabaseSettings,
+    pub application: ApplicationSettings,
 }
 
 #[derive(serde::Deserialize)]
-pub struct DatabaseSetting {
+pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
     pub port: u16,
@@ -16,12 +16,12 @@ pub struct DatabaseSetting {
 }
 
 #[derive(serde::Deserialize)]
-pub struct ApplicationSetting {
+pub struct ApplicationSettings {
     pub port: u16,
     pub host: String
 }
 
-impl DatabaseSetting {
+impl DatabaseSettings {
     pub fn connection_string(&self) -> Secret<String> {
         Secret::new(
             format!(
