@@ -1,4 +1,4 @@
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
+use zero2prod::configuration::{get_configuration, DatabaseSetting};
 use zero2prod::startups::run;
 use zero2prod::telemetry::{init_subscriber, get_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -58,7 +58,7 @@ async fn spawn_app() -> TestApp {
     }
 }
 
-pub async fn configure_database_settings(config: &DatabaseSettings) -> PgPool {
+pub async fn configure_database_settings(config: &DatabaseSetting) -> PgPool {
     let mut connection = PgConnection::connect(
         &config.connection_string_without_db().expose_secret()
     ).await.expect("Failed to connect to Postgres!");
