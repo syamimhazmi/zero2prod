@@ -9,9 +9,15 @@ services:
       deploy_on_push: true
       repo: syamimhazmi/zero2prod
     health_check:
-      http: /health-check
-      http_port: 8000
-      instance_count: 1
-      instance_size_slug: basic-xxs
-      routes:
-        - path: /
+      http_path: /health-check
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    databases:
+      - engine: PG
+        name: newsletter
+        num_nodes: 1
+        size: db-s-dev-database
+        version: "17"
