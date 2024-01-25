@@ -2,7 +2,7 @@ use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgSslMode;
-use sqlx::{Connection, ConnectOptions};
+use sqlx::ConnectOptions;
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -56,7 +56,7 @@ impl DatabaseSettings {
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let base_path = std::env::current_dir()
         .expect("Failed to determine the current directory");
-    let config_directory = base_path.join("../configurations");
+    let config_directory = base_path.join("configurations");
 
     let env: Environment = std::env::var("APP_ENV")
         .unwrap_or_else(|_| "local".into())
