@@ -8,6 +8,7 @@ services:
       branch: master
       deploy_on_push: true
       repo: syamimhazmi/zero2prod
+    # Active probe used by DigitalOcean's to ensure our application is healthy
     health_check:
       http_path: /health-check
     http_port: 8000
@@ -15,9 +16,13 @@ services:
     instance_size_slug: basic-xxs
     routes:
       - path: /
-    databases:
-      - engine: PG
-        name: newsletter
-        num_nodes: 1
-        size: db-s-dev-database
-        version: "17"
+
+databases:
+  # PG = Postgres
+  - engine: PG
+    # Database name
+    name: newsletter
+    num_nodes: 1
+    size: db-s-dev-database
+    # Postgres version - using the latest here
+    version: "14"
