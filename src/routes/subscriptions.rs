@@ -22,9 +22,14 @@ pub async fn subscribes(
     form: web::Form<FormData>,
     pool: web::Data<PgPool>
 ) -> HttpResponse {
+    let name = match SubscriberName::parse(form.0.name) {
+        Ok(name) => name,
+        Err(_) => return HttpResponse::BadRequest().finish()
+    };
+
     let new_subscriber = NewSubscriber {
         email: form.0.email,
-        name: SubscriberName::parse(form.0.name)
+        name
     };
 
     match insert_subscriber(&pool, &new_subscriber).await {
@@ -37,17 +42,17 @@ pub async fn subscribes(
     name = "Saving new subscriber details in database",
     skip(new_subscriber, pool)
 )]
-pub async fn insert_subscriber(pool: &PgPool, new_subscriber: &NewSubscriber) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(
+    pool: &PgPool,
+    new_subscriber: &NewSubscriber
+) -> Result<(), sqlx::Error> {
     sqlx::query!(r#"
         insert into subscriptions (id, email, name, subscribed_at)
         values ($1, $2, $3, $4)
     "#, Uuid::new_v4(), new_subscriber.email, new_subscriber.name.as_ref(), Utc::now())
         .execute(pool)
         .await
-        .map(|e| {
-            tracing::error!("Failed to execute query: {:?}", e);
-            e
-        })?;
+        .map(|_| HttpResponse::InternalServerError().finish())?;
 
         Ok(())
 }
