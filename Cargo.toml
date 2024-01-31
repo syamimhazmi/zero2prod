@@ -29,6 +29,7 @@ tracing-actix-web = "0.7"
 unicode-segmentation = "1.7.1"
 rand = "0.8.5"
 claims = "0.7"
+validator = "0.16"
 
 [dependencies.sqlx]
 version = "0.6"
