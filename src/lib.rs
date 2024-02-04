@@ -3,3 +3,4 @@ pub mod routes;
 pub mod startups;
 pub mod telemetry;
 pub mod domains;
+pub mod email_client;
