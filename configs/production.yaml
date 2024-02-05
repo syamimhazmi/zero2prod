@@ -5,5 +5,5 @@ database:
   require_ssl: true
 
 email_client:
-  base_url: "https://bulk.api.mailtrap.io/api/send"
-  sender_email: "mailtrap@syamimhazmi.com"
+  base_url: "https://api.postmarkapp.com"
+  sender_email: "dev@syamimhazmi.com"
