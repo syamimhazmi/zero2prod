@@ -39,7 +39,6 @@ pub async fn subscribes(
     form: web::Form<FormData>,
     pool: web::Data<PgPool>
 ) -> HttpResponse {
-
     let new_subscriber = match form.0.try_into() {
         Ok(form) => form,
         Err(_) => return HttpResponse::BadRequest().finish()
@@ -59,8 +58,10 @@ pub async fn insert_subscriber(
     pool: &PgPool,
     new_subscriber: &NewSubscriber
 ) -> Result<(), sqlx::Error> {
-    sqlx::query!(r#"insert into subscriptions (id, email, name, subscribed_at, status)
-            values ($1, $2, $3, $4, 'confirmed')"#,
+    sqlx::query!(r#"
+    INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+    VALUES ($1, $2, $3, $4, 'pending_confirmation')
+            "#,
         Uuid::new_v4(),
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
