@@ -1,5 +1,5 @@
 use zero2prod::configuration::get_configuration;
-use zero2prod::startups::build;
+use zero2prod::startups::Application;
 use zero2prod::telemetry::{init_subscriber, get_subscriber};
 
 #[tokio::main]
@@ -10,9 +10,9 @@ async fn main() -> Result<(), std::io::Error> {
 
     let configuration = get_configuration().expect("Failed to load configs file");
 
-   let server = build(configuration).await?;
+    let application = Application::build(configuration).await?;
 
-    server.await?;
+    application.run_until_stopped().await?;
 
     Ok(())
 }
