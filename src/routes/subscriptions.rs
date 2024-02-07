@@ -28,6 +28,7 @@ impl TryFrom<FormData> for NewSubscriber {
         Ok(Self{ name, email })
     }
 }
+
 #[tracing::instrument(
     name = "Adding new subscriber",
     skip(form, pool, email_client),
@@ -48,11 +49,19 @@ pub async fn subscribes(
 
     let insert_subscriber = insert_subscriber(&pool, &new_subscriber).await;
 
+    let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
     let send_email = email_client.send_email(
         new_subscriber.email,
         "Welcome!",
-        "Welcome to our newsletter",
-        "Welcome to our newsletter!"
+        &format!(
+            "Welcome to our newsletter!<br />\
+            Click <a href=\"{}\">here</a> to confirm your subscription.",
+            confirmation_link
+        ),
+        &format!(
+            "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+            confirmation_link
+        ),
     ).await;
 
     if insert_subscriber.is_err() || send_email.is_err() {
@@ -60,6 +69,34 @@ pub async fn subscribes(
     }
 
     HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation email to a new subscriber"
+    skip(email_client, new_subscriber)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber
+) -> Result<(), reqwest::Error> {
+    let confirmation_link =
+        "https://there-is-no-such-domain.com/subscriptions/confirm";
+    let plain_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+        confirmation_link
+    );
+    let html_body = format!(
+        "Welcome to our newsletter!<br />\
+        Click <a href=\"{}\">here</a> to confirm your subscription.",
+        confirmation_link
+    );
+
+    email_client.send_email(
+        new_subscriber.email,
+        "Welcome to Syamim Hazmi",
+        &html_body,
+        &plain_body,
+    ).await
 }
 
 #[tracing::instrument(
