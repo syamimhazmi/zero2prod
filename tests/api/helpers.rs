@@ -5,6 +5,7 @@ use zero2prod::configuration::{get_configuration, DatabaseSettings};
 use zero2prod::startups::get_connection_pool;
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 use zero2prod::startups::Application;
+use wiremock::MockServer;
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -23,6 +24,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -42,12 +44,16 @@ pub async fn spawn_app() -> TestApp {
     // All other invocations will instead skip execution.
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let configuration =  {
         let mut config = get_configuration().expect("Failed to read configuration");
 
         config.database.database_name = Uuid::new_v4().to_string();
 
         config.application.port = 0;
+
+        config.email_client.base_url = email_server.uri();
 
         config
     };
@@ -65,7 +71,8 @@ pub async fn spawn_app() -> TestApp {
 
     TestApp {
         address,
-        db_pool: get_connection_pool(&configuration.database)
+        db_pool: get_connection_pool(&configuration.database),
+        email_server
     }
 }
 
@@ -75,8 +82,7 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to connect to Postgres");
 
-    connection
-        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name.as_str()))
+    connection.execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name.as_str()))
         .await
         .expect("Failed to create database.");
 
