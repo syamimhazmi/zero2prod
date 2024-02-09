@@ -9,6 +9,7 @@ use crate::email_client::EmailClient;
 use crate::configuration::Settings;
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::DatabaseSettings;
+use crate::routes::confirm;
 
 pub struct Application {
     port: u16,
@@ -73,6 +74,7 @@ pub fn run(
             .wrap(TracingLogger::default())
             .route("/health-check", web::get().to(health_check))
             .route("/subscribes", web::post().to(subscribes))
+            .route("/subscribes/confirm", web::get().to(confirm))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
     })
