@@ -40,7 +40,7 @@ impl Application {
 
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client)?;
+        let server = run(listener, connection_pool, email_client, configuration.application.base_url)?;
 
         Ok(Self { port, server })
     }
@@ -54,7 +54,7 @@ impl Application {
     }
 }
 
-
+pub struct ApplicationBaseUrl(pub String);
 
 pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
     PgPoolOptions::new()
@@ -62,12 +62,15 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .connect_lazy_with(configuration.with_db())
 }
 
-pub fn run(
-    listener: TcpListener, db_pool: PgPool, email_client: EmailClient
+fn run(
+    listener: TcpListener,
+    db_pool: PgPool,
+    email_client: EmailClient,
+    base_url: String,
 ) -> Result<Server, std::io::Error> {
     let db_pool = Data::new(db_pool);
-
     let email_client = Data::new(email_client);
+    let base_url = Data::new(ApplicationBaseUrl(base_url));
 
     let server = HttpServer::new(move || {
         App::new()
@@ -77,6 +80,7 @@ pub fn run(
             .route("/subscribes/confirm", web::get().to(confirm))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
+            .app_data(base_url.clone())
     })
         .listen(listener)?
         .run();
