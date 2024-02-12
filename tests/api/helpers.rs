@@ -5,6 +5,7 @@ use zero2prod::configuration::{get_configuration, DatabaseSettings};
 use zero2prod::startups::get_connection_pool;
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 use zero2prod::startups::Application;
+use wiremock::MockServer;
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -21,8 +22,16 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 });
 
 pub struct TestApp {
+    pub port: u16,
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
+}
+
+#[derive(Debug)]
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub plain_text: reqwest::Url,
 }
 
 impl TestApp {
@@ -35,6 +44,33 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+
+        let get_link = |value: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(value)
+                .filter(|link| *link.kind() == linkify::LinkKind::Url)
+                .collect();
+
+            assert_eq!(links.len(), 1);
+
+            let raw_link = links[0].as_str().to_owned();
+            let mut confirmation_link = reqwest::Url::parse(&raw_link).unwrap();
+
+            assert_eq!(confirmation_link.host_str().unwrap(), "127.0.0.1");
+
+            confirmation_link.set_port(Some(self.port)).unwrap();
+
+            confirmation_link
+        };
+
+        let html = get_link(&body["HtmlBody"].as_str().unwrap());
+        let plain_text = get_link(&body["TextBody"].as_str().unwrap());
+
+        ConfirmationLinks { html, plain_text }
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -42,12 +78,16 @@ pub async fn spawn_app() -> TestApp {
     // All other invocations will instead skip execution.
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let configuration =  {
         let mut config = get_configuration().expect("Failed to read configuration");
 
         config.database.database_name = Uuid::new_v4().to_string();
 
         config.application.port = 0;
+
+        config.email_client.base_url = email_server.uri();
 
         config
     };
@@ -57,15 +97,14 @@ pub async fn spawn_app() -> TestApp {
     let application = Application::build(configuration.clone())
         .await
         .expect("Failed to build application");
-
-
-    let address = format!("http://127.0.0.1:{}", application.port());
-
+    let application_port = application.port();
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
-        address,
-        db_pool: get_connection_pool(&configuration.database)
+        address: format!("http://localhost:{}", application_port),
+        port: application_port,
+        db_pool: get_connection_pool(&configuration.database),
+        email_server
     }
 }
 
@@ -75,8 +114,7 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to connect to Postgres");
 
-    connection
-        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name.as_str()))
+    connection.execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name.as_str()))
         .await
         .expect("Failed to create database.");
 
