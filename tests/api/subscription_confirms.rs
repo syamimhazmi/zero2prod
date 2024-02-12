@@ -29,9 +29,7 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
     let confirmation_links = app.get_confirmation_links(&email_request);
 
-    let response = reqwest::get(confirmation_links.html)
-        .await
-        .unwrap();
+    let response = reqwest::get(confirmation_links.html).await.unwrap();
 
     assert_eq!(response.status().as_u16(), 200)
 }
@@ -40,7 +38,6 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
 async fn clicking_on_the_confirmation_link_confirms_a_subscriber() {
     let app = spawn_app().await;
     let body = "name=syamim%20hazmi&email=syamimhazmi%40gmail.com";
-
 
     Mock::given(path("/email"))
         .and(method("POST"))
@@ -59,7 +56,7 @@ async fn clicking_on_the_confirmation_link_confirms_a_subscriber() {
         .error_for_status()
         .unwrap();
 
-    let subscription = sqlx::query!("select email, name, status from subscriptions")
+    let subscription = sqlx::query!("select email, name, status from subscriptions",)
         .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscription");

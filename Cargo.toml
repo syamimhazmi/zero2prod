@@ -27,7 +27,7 @@ tracing-bunyan-formatter = "0.3.1"
 tracing-log = "0.1.1"
 tracing-actix-web = "0.7"
 unicode-segmentation = "1.7.1"
-rand = "0.8.5"
+rand = { version = "0.8", features = ["std_rng"] }
 claims = "0.7"
 validator = "0.16"
 
