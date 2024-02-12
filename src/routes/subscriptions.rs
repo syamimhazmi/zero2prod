@@ -171,5 +171,5 @@ pub async fn insert_subscriber(
         .await
         .map(|_| HttpResponse::InternalServerError().finish())?;
 
-        Ok(subscriber_id)
+    Ok(subscriber_id)
 }
