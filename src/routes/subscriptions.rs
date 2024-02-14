@@ -215,7 +215,7 @@ impl std::fmt::Debug for StoreTokenError {
     }
 }
 
-fn error_chain_fmt(
+pub fn error_chain_fmt(
     error: &impl std::error::Error,
     format: &mut Formatter<'_>
 ) -> std::fmt::Result {
