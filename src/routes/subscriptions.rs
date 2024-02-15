@@ -89,7 +89,7 @@ pub async fn subscribes(
         .context("Failed to commit SQL transaction to store a new subscriber.")?;
 
     send_confirmation_email(
-        &email_client, new_subscriber, &base_url.0, &subscription_token
+        &email_client, &new_subscriber, &base_url.0, &subscription_token
     ).await.context("Failed to send confirmation email")?;
 
     Ok(HttpResponse::Ok().finish())
@@ -135,7 +135,7 @@ pub async fn store_token(
 )]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
-    new_subscriber: NewSubscriber,
+    new_subscriber: &NewSubscriber,
     base_url: &str,
     subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
@@ -155,7 +155,7 @@ pub async fn send_confirmation_email(
     );
 
     email_client.send_email(
-        new_subscriber.email,
+        &new_subscriber.email,
         "Welcome to Syamim Hazmi",
         &html_body,
         &plain_body,
