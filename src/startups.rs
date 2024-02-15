@@ -1,4 +1,3 @@
-use crate::routes::{health_check, subscribes};
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
@@ -9,7 +8,7 @@ use crate::email_client::EmailClient;
 use crate::configuration::Settings;
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::DatabaseSettings;
-use crate::routes::confirm;
+use crate::routes::{confirm, health_check, subscribes, publish_newsletter};
 
 pub struct Application {
     port: u16,
@@ -78,6 +77,7 @@ fn run(
             .route("/health-check", web::get().to(health_check))
             .route("/subscribes", web::post().to(subscribes))
             .route("/subscribes/confirm", web::get().to(confirm))
+            .route("/newsletters", web::post().to(publish_newsletter))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())
