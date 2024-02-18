@@ -1,16 +1,22 @@
 use std::fmt::Formatter;
-use actix_web::{HttpResponse, web, ResponseError};
+use actix_web::{HttpResponse, web, ResponseError, HttpRequest};
 use sqlx::PgPool;
 use crate::routes::error_chain_fmt;
 use actix_web::http::StatusCode;
 use anyhow::Context;
 use crate::email_client::EmailClient;
 use crate::domains::SubscriberEmail;
+use secrecy::Secret;
+use actix_web::http::header::{HeaderMap, HeaderValue};
+use base64::Engine;
+use reqwest::header;
 
 #[derive(thiserror::Error)]
 pub enum PublishError {
+    #[error("Authentication failed")]
+    AuthError(#[source] anyhow::Error),
     #[error(transparent)]
-    UnexpectedError(#[from] anyhow::Error)
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 impl std::fmt::Debug for PublishError {
@@ -20,9 +26,21 @@ impl std::fmt::Debug for PublishError {
 }
 
 impl ResponseError for PublishError {
-    fn status_code(&self) -> StatusCode {
+    fn error_response(&self) -> HttpResponse {
         match self {
-            PublishError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR
+            PublishError::UnexpectedError(_) => {
+                HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            PublishError::AuthError(_) => {
+                let mut response = HttpResponse::new(StatusCode::UNAUTHORIZED);
+
+                let header_value = HeaderValue::from_str(r#"Basic realm="publish""#).unwrap();
+
+                response.headers_mut()
+                    .insert(header::WWW_AUTHENTICATE, header_value);
+
+                response
+            }
         }
     }
 }
@@ -32,8 +50,8 @@ struct ConfirmedSubscriber {
 }
 
 #[tracing::instrument(
-    name = "Get confirm subscribers",
-    skip(pool)
+name = "Get confirm subscribers",
+skip(pool)
 )]
 async fn get_confirmed_subscriber(pool: &PgPool) -> Result<Vec<Result<ConfirmedSubscriber, anyhow::Error>>, anyhow::Error> {
     let confirmed_subscriber = sqlx::query!(
@@ -51,11 +69,10 @@ async fn get_confirmed_subscriber(pool: &PgPool) -> Result<Vec<Result<ConfirmedS
     Ok(confirmed_subscriber)
 }
 
-
 #[derive(serde::Deserialize)]
 pub struct BodyData {
     title: String,
-    content: Content
+    content: Content,
 }
 
 #[derive(serde::Deserialize)]
@@ -67,8 +84,12 @@ pub struct Content {
 pub async fn publish_newsletter(
     body: web::Json<BodyData>,
     pool: web::Data<PgPool>,
-    email_client: web::Data<EmailClient>
+    email_client: web::Data<EmailClient>,
+    request: HttpRequest,
 ) -> Result<HttpResponse, PublishError> {
+    let _credentials = basic_authentication(request.headers())
+        .map_err(PublishError::AuthError)?;
+
     let subscribers = get_confirmed_subscriber(&pool).await?;
 
     for subscriber in subscribers {
@@ -80,9 +101,9 @@ pub async fn publish_newsletter(
                     &body.content.html,
                     &body.content.text,
                 ).await
-                .with_context(|| {
-                    format!("Failed to send newsletters issue to {}", subscriber.email)
-                })?;
+                    .with_context(|| {
+                        format!("Failed to send newsletters issue to {}", subscriber.email)
+                    })?;
             }
             Err(error) => {
                 tracing::warn!(
@@ -96,4 +117,44 @@ pub async fn publish_newsletter(
     }
 
     Ok(HttpResponse::Ok().finish())
+}
+
+struct Credentials {
+    username: String,
+    password: Secret<String>,
+}
+
+fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Error> {
+    let header_value = headers.get("Authorization")
+        .context("The 'Authorization' header was missing")?
+        .to_str()
+        .context("The 'Authorization' header was not a valid UTF8 string.")?;
+
+    let base64encoded_credentials = header_value.strip_prefix("Basic ")
+        .context("The authorization scheme was not 'Basic'.")?;
+
+    let decoded_bytes = base64::engine::general_purpose::STANDARD.decode(base64encoded_credentials)
+        .context("Failed to base64-decode 'Basic' credentials.")?;
+
+    let decoded_credentials = String::from_utf8(decoded_bytes)
+        .context("The decoded credential string is not valid UTF8.")?;
+
+    let mut credentials = decoded_credentials.splitn(2, ':');
+
+    let username = credentials
+        .next()
+        .ok_or_else(|| {
+            anyhow::anyhow!("A username must be provided in 'Basic' auth.")
+        })?.to_string();
+
+    let password = credentials
+        .next()
+        .ok_or_else(|| {
+            anyhow::anyhow!("A password must be provided in 'Basic' auth.")
+        })?.to_string();
+
+    Ok(Credentials {
+        username,
+        password: Secret::new(password)
+    })
 }

@@ -32,6 +32,7 @@ claims = "0.7"
 validator = "0.16"
 thiserror = "1"
 anyhow = "1"
+base64 = "0.21"
 
 [dependencies.sqlx]
 version = "0.6"
