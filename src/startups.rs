@@ -8,7 +8,7 @@ use crate::email_client::EmailClient;
 use crate::configuration::Settings;
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::DatabaseSettings;
-use crate::routes::{confirm, health_check, subscribes, publish_newsletter};
+use crate::routes::{confirm, health_check, subscribes, publish_newsletter, index, login_form, login};
 
 pub struct Application {
     port: u16,
@@ -74,6 +74,9 @@ fn run(
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .route("/", web::get().to(index))
+            .route("/login", web::get().to(login_form))
+            .route("/login", web::post().to(login))
             .route("/health-check", web::get().to(health_check))
             .route("/subscribes", web::post().to(subscribes))
             .route("/subscribes/confirm", web::get().to(confirm))
