@@ -1,26 +1,32 @@
-use actix_web::{HttpResponse, http::header::ContentType, HttpRequest};
+use actix_web::{HttpResponse, http::header::ContentType};
 use actix_web::cookie::Cookie;
-use actix_web::cookie::time::Duration;
+use actix_web_flash_messages::{IncomingFlashMessages, Level};
+use std::fmt::Write;
 
 pub async fn login_form(
-    request: HttpRequest
+    flash_messages: IncomingFlashMessages
 ) -> HttpResponse {
-    let error_html = match request.cookie("_flash") {
-        None => "".into(),
-        Some(cookie) => {
-            format!("<p><i>{}</i></p>", cookie.value())
-        }
-    };
+    let mut error_html = String::new();
+
+    let flash_messages = flash_messages.iter()
+        .filter(|message| message.level() == Level::Error);
+    for flash_message in flash_messages {
+        writeln!(error_html, "<p><i>{}</i></p>", flash_message.content()).unwrap();
+    }
 
     let mut response = HttpResponse::Ok()
         .content_type(ContentType::html())
-        .cookie(
-            Cookie::build("_flash", "")
-                .max_age(Duration::ZERO)
-                .finish(),
-        )
-        .body(format!(
-            r#"<!DOCTYPE html>
+        .body(body_html_content(error_html));
+
+    response.add_removal_cookie(&Cookie::new("_flash", ""))
+        .unwrap();
+
+    response
+}
+
+fn body_html_content(error_html: String) -> String {
+    return format!(
+        r#"<!DOCTYPE html>
             <html lang="en">
                 <head>
                     <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -46,11 +52,6 @@ pub async fn login_form(
                         <button type="submit">Login</button>
                     </form>
                 </body>
-            </html>"#,
-        ));
-
-    response.add_removal_cookie(&Cookie::new("_flash", ""))
-        .unwrap();
-
-    response
+            </html>"#
+    )
 }
