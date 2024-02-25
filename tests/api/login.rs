@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::hash::Hasher;
 use reqwest::header::HeaderValue;
 use crate::helpers::{assert_is_redirect_to, spawn_app};
 
