@@ -32,7 +32,7 @@ pub async fn admin_dashboard(
     name = "Get user's username",
     skip(pool)
 )]
-async fn get_username(
+pub async fn get_username(
     user_id: Uuid,
     pool: &PgPool
 ) -> Result<String, anyhow::Error> {

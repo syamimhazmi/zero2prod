@@ -54,7 +54,7 @@ fn password_form_html(msg_html: String) -> String {
                         <input
                             type="password"
                             placeholder="Type the new password again"
-                            name="new_password_check">
+                            name="new_password_confirm">
                     </label>
                     <br>
                     <button type="submit">Change password</button>
