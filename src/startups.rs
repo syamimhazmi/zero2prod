@@ -14,7 +14,7 @@ use crate::email_client::EmailClient;
 use crate::configuration::Settings;
 use sqlx::postgres::PgPoolOptions;
 use crate::configuration::DatabaseSettings;
-use crate::routes::{confirm, health_check, subscribes, publish_newsletter, index, login_form, login};
+use crate::routes::{confirm, health_check, subscribes, publish_newsletter, index, login_form, login, admin_dashboard};
 
 pub struct Application {
     port: u16,
@@ -101,6 +101,7 @@ async fn run(
             .route("/", web::get().to(index))
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
+            .route("/admin/dashboard", web::get().to(admin_dashboard))
             .route("/health-check", web::get().to(health_check))
             .route("/subscribes", web::post().to(subscribes))
             .route("/subscribes/confirm", web::get().to(confirm))

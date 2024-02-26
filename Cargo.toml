@@ -16,7 +16,7 @@ name = "zero2prod"
 actix-web = "4"
 chrono = { version = "0.4.22", default-features = false, features = ["clock"] }
 config = { version = "0.13", default-features = false, features = ["yaml"] }
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 secrecy = { version = "0.8", features = ["serde"] }
 serde = "1.0.115"
 serde-aux="4"
