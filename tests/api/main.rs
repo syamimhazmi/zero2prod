@@ -4,3 +4,4 @@ mod subscriptions;
 mod subscription_confirms;
 mod newsletter;
 mod login;
+mod admin_dashboard;
