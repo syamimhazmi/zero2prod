@@ -4,13 +4,7 @@ use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
 use crate::session_state::TypedSession;
-
-fn e500<T>(error: T) -> actix_web::Error
-where
-    T: std::fmt::Debug + std::fmt::Display + 'static
-{
-    actix_web::error::ErrorInternalServerError(error)
-}
+use crate::utils::e500;
 
 pub async fn admin_dashboard(
     session: TypedSession,
