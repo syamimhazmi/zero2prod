@@ -8,11 +8,13 @@ use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web_flash_messages::FlashMessagesFramework;
 use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_lab::middleware::from_fn;
 use secrecy::{ExposeSecret, Secret};
 use tracing_actix_web::TracingLogger;
 use crate::email_client::EmailClient;
 use crate::configuration::Settings;
 use sqlx::postgres::PgPoolOptions;
+use crate::authentication::reject_anonymous_users;
 use crate::configuration::DatabaseSettings;
 use crate::routes::{confirm, health_check, subscribes, publish_newsletter, index, login_form, login, admin_dashboard, change_password_form, change_password, logout};
 
@@ -98,13 +100,17 @@ async fn run(
             .wrap(message_framework.clone())
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .wrap(TracingLogger::default())
+            .service(
+                web::scope("/admin")
+                    .wrap(from_fn(reject_anonymous_users))
+                    .route("/logout", web::post().to(logout))
+                    .route("/dashboard", web::get().to(admin_dashboard))
+                    .route("/password", web::get().to(change_password_form))
+                    .route("/password", web::post().to(change_password))
+            )
             .route("/", web::get().to(index))
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
-            .route("/admin/logout", web::post().to(logout))
-            .route("/admin/dashboard", web::get().to(admin_dashboard))
-            .route("/admin/password", web::get().to(change_password_form))
-            .route("/admin/password", web::post().to(change_password))
             .route("/health-check", web::get().to(health_check))
             .route("/subscribes", web::post().to(subscribes))
             .route("/subscribes/confirm", web::get().to(confirm))

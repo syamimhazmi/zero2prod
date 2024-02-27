@@ -95,8 +95,8 @@ async fn get_stored_credentials(
 }
 
 #[tracing::instrument(
-    name = "Change password",
-    skip(password, pool)
+name = "Change password",
+skip(password, pool)
 )]
 pub async fn change_password(
     user_id: uuid::Uuid,
@@ -118,7 +118,6 @@ pub async fn change_password(
 
     Ok(())
 }
-
 
 fn compute_password_hash(password: Secret<String>) -> Result<Secret<String>, anyhow::Error> {
     let salt = SaltString::generate(&mut rand::thread_rng());
