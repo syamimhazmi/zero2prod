@@ -101,7 +101,7 @@ async fn run(
             .route("/", web::get().to(index))
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
-            .route("/logout", web::post().to(logout))
+            .route("/admin/logout", web::post().to(logout))
             .route("/admin/dashboard", web::get().to(admin_dashboard))
             .route("/admin/password", web::get().to(change_password_form))
             .route("/admin/password", web::post().to(change_password))

@@ -26,36 +26,26 @@ pub async fn login(
 ) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.username,
-        password: form.0.password
+        password: form.0.password,
     };
-
-    tracing::Span::current().record(
-        "username",
-        &tracing::field::display(&credentials.username)
-    );
-
+    tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
     match validate_credentials(credentials, &pool).await {
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
-
             session.renew();
-
-            session.insert_user_id(user_id)
-                .map_err(|err| login_redirect(LoginError::UnexpectedError(err.into())))?;
-
+            session
+                .insert_user_id(user_id)
+                .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))?;
             Ok(HttpResponse::SeeOther()
                 .insert_header((LOCATION, "/admin/dashboard"))
                 .finish())
         }
-        Err(err) => {
-            let error = match err {
-                AuthError::InvalidCredentials(_) => LoginError::AuthError(err.into()),
-                AuthError::UnexpectedError(_) => {
-                    LoginError::UnexpectedError(err.into())
-                }
+        Err(e) => {
+            let e = match e {
+                AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+                AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
             };
-
-            Err(login_redirect(error))
+            Err(login_redirect(e))
         }
     }
 }

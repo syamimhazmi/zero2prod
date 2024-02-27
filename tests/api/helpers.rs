@@ -1,13 +1,12 @@
-use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
 use argon2::password_hash::SaltString;
+use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
-use zero2prod::startups::get_connection_pool;
-use zero2prod::telemetry::{get_subscriber, init_subscriber};
-use zero2prod::startups::Application;
 use wiremock::MockServer;
+use zero2prod::configuration::{get_configuration, DatabaseSettings};
+use zero2prod::startups::{Application, get_connection_pool};
+use zero2prod::telemetry::{get_subscriber, init_subscriber};
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -123,8 +122,8 @@ impl TestApp {
     }
 
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
-    where
-        Body: serde::Serialize
+        where
+            Body: serde::Serialize,
     {
         self.api_client
             .post(&format!("{}/login", &self.address))
@@ -186,7 +185,7 @@ impl TestApp {
             .post(&format!("{}/admin/logout", &self.address))
             .send()
             .await
-            .expect("Failed to execute request");
+            .expect("Failed to execute request")
     }
 }
 
@@ -262,6 +261,9 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
 pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
     assert_eq!(response.status().as_u16(), 303);
+    // dbg!(location);
+    // let headers = &response.headers().get("Location").unwrap();
+    // dbg!(headers);
 
     assert_eq!(response.headers().get("Location").unwrap(), location)
 }
